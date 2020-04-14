@@ -3,6 +3,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+
 #include<GL/glew.h>
 #include<iostream>
 #include <GLFW/glfw3.h>
@@ -23,7 +24,8 @@
 #include <sstream>
 #include "artefact.h"
 #include <stb_image/stb_image.h>
-
+#include "cudaGL.h"
+#include "cuda_gl_interop.h"
 
 using namespace std;
 freecam primary_cam;
@@ -50,6 +52,7 @@ __global__ void square(int *devin, int * devout)
 
 int main()
 {
+    
     int arr1[] = { 1,2,3 };
     
     
@@ -108,6 +111,7 @@ int main()
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
     };
+    
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -144,7 +148,16 @@ int main()
 
     int width, height, nrChannels;
     // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-    unsigned char* data = stbi_load("D:/CUDA/first_project/res/textures/RhoOphichius_60Da_70mm_50.jpg", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load("D:/CUDA/first_project/res/textures/red.jpg", &width, &height, &nrChannels, 0);
+    unsigned pixelr = data[0 + (width*height*3) -3];
+    unsigned pixelg = data[1 + (width * height * 3)-3];
+    unsigned pixelb = data[2 + (width * height * 3)-3];
+    ///seems like the char * data is because char is 8 bytes and thats whats needed for 255 intesity values, also the image seems to be stored as R1, G1, B1, R2, G2, B2 etc
+    ///Maybe this can be copied into a pixel buffer, also converting from an array to this format may not be too hard
+
+
+
+    cout << pixelr << " " << pixelg << " " << pixelb << endl;
     if (data)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -160,7 +173,7 @@ int main()
     /*s.Bind();*/
 
 
-
+    cudaGLRegisterBufferObject(VBO);
 
 
 
