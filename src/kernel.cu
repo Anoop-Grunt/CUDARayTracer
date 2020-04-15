@@ -23,32 +23,7 @@
 #include <stb_image/stb_image.h>
 #include "cudaGL.h"
 #include "cuda_gl_interop.h"
-#define TX 32
-#define TY 32
 
-__device__
-unsigned char clip(int n) { return n > 255 ? 255 : (n < 0 ? 0 : n); }
-
-__global__
-void distanceKernel(uchar4* d_out, int w, int h, int2 pos) {
-	const int c = blockIdx.x * blockDim.x + threadIdx.x;
-	const int r = blockIdx.y * blockDim.y + threadIdx.y;
-	if ((c >= w) || (r >= h)) return; // Check if within image bounds
-	const int i = c + r * w; // 1D indexing
-	const int dist = sqrtf((c - pos.x) * (c - pos.x) + (r - pos.y) * (r - pos.y));
-	const unsigned char intensity = clip(255 - dist);
-
-	d_out[i].x = 255;
-	d_out[i].y = 0;
-	d_out[i].z = 255;
-	d_out[i].w = 255;
-}
-
-void kernelLauncher(uchar4* d_out, int w, int h, int2 pos) {
-	const dim3 blockSize(TX, TY);
-	const dim3 gridSize = dim3((w + TX - 1) / TX, (h + TY - 1) / TY);
-	distanceKernel << <gridSize, blockSize >> > (d_out, w, h, pos);
-}
 
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
@@ -67,14 +42,28 @@ void MouseControlWrapper(GLFWwindow* window, double mouse_x, double mouse_y) {
 void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
-__global__ void square(int* devin, int* devout)
+
+
+
+__global__ void
+paint(unsigned char* g_odata)
 {
 	int i = threadIdx.x;
-	devout[i] = devin[i] * devin[i];
+	int off = i * 4;
+	g_odata[off] = 0;
+	g_odata[off + 1] = 0;
+	g_odata[off + 2] = 255;
+	g_odata[off + 3] = 255;
+
+	
 }
+
+
 
 int main()
 {
+	cudaSetDevice(0);
+	
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
@@ -121,8 +110,8 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	int width, height, nrChannels;
-	width = 100;
-	height = 100;
+	width = 5;
+	height = 5;
 	nrChannels = 4;
 
 	vector<unsigned char> data2;
@@ -140,18 +129,24 @@ int main()
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * nrChannels * sizeof(GLubyte), NULL, GL_DYNAMIC_DRAW);
 	void* mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-	//memcpy(mappedBuffer, &data2[0], width * height * nrChannels * sizeof(GLubyte));
+	memcpy(mappedBuffer, &data2[0], width * height * nrChannels * sizeof(GLubyte));
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 
 	cudaGraphicsResource* res;
 	gpuCheckErrs(cudaGraphicsGLRegisterBuffer(&res, pbo, cudaGraphicsMapFlagsNone));
 	gpuCheckErrs(cudaGraphicsMapResources(1, &res, 0));
-	uchar4* out_data;
+	unsigned char* out_data;
 	size_t num_bytes;
 	gpuCheckErrs(cudaGraphicsResourceGetMappedPointer((void**)&out_data, &num_bytes, res));
-	int2 loc = { width / 2, height / 2 };
-	kernelLauncher(out_data, width, height, loc);
+	paint << <1, 100 >> > (out_data);
+	cudaGraphicsUnmapResources(1, &res);
+	unsigned char* h_in;
+	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
+
+	gpuCheckErrs(cudaMemcpy(h_in, out_data, width * height * nrChannels * sizeof(GLubyte), cudaMemcpyDeviceToHost));
+
+	cout << h_in[3]<<endl;
 
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
