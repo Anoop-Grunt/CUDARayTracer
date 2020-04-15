@@ -24,7 +24,6 @@
 #include "cudaGL.h"
 #include "cuda_gl_interop.h"
 
-
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
@@ -43,8 +42,6 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
 
-
-
 __global__ void
 paint(unsigned char* g_odata)
 {
@@ -54,16 +51,12 @@ paint(unsigned char* g_odata)
 	g_odata[off + 1] = 0;
 	g_odata[off + 2] = 255;
 	g_odata[off + 3] = 255;
-
-	
 }
-
-
 
 int main()
 {
 	cudaSetDevice(0);
-	
+
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
@@ -114,24 +107,11 @@ int main()
 	height = 5;
 	nrChannels = 4;
 
-	vector<unsigned char> data2;
-	for (int i = 0; i < height; i++) {
-		for (int j = 0;j < width;j++) {
-			data2.push_back(255);
-			data2.push_back(0);
-			data2.push_back(255);
-			data2.push_back(255);
-		}
-	}
-
 	unsigned int pbo;
 	glGenBuffers(1, &pbo);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * nrChannels * sizeof(GLubyte), NULL, GL_DYNAMIC_DRAW);
-	void* mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-	memcpy(mappedBuffer, &data2[0], width * height * nrChannels * sizeof(GLubyte));
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
 
 	cudaGraphicsResource* res;
 	gpuCheckErrs(cudaGraphicsGLRegisterBuffer(&res, pbo, cudaGraphicsMapFlagsNone));
@@ -143,10 +123,6 @@ int main()
 	cudaGraphicsUnmapResources(1, &res);
 	unsigned char* h_in;
 	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
-
-	gpuCheckErrs(cudaMemcpy(h_in, out_data, width * height * nrChannels * sizeof(GLubyte), cudaMemcpyDeviceToHost));
-
-	cout << h_in[3]<<endl;
 
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
