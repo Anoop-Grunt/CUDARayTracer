@@ -88,7 +88,7 @@ int main()
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
+    window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -98,6 +98,7 @@ int main()
 
     /* Make the window's0 context current */
     glfwMakeContextCurrent(window);
+    
     glewInit();
     
     float vertices[] = {
@@ -148,19 +149,31 @@ int main()
 
     int width, height, nrChannels;
     // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-    unsigned char* data = stbi_load("D:/CUDA/first_project/res/textures/red.jpg", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load("D:/CUDA/first_project/res/textures/RhoOphichius_60Da_70mm_50.jpg", &width, &height, &nrChannels, 0);
     unsigned pixelr = data[0 + (width*height*3) -3];
     unsigned pixelg = data[1 + (width * height * 3)-3];
     unsigned pixelb = data[2 + (width * height * 3)-3];
     ///seems like the char * data is because char is 8 bytes and thats whats needed for 255 intesity values, also the image seems to be stored as R1, G1, B1, R2, G2, B2 etc
     ///Maybe this can be copied into a pixel buffer, also converting from an array to this format may not be too hard
 
+    unsigned int pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * 3, NULL, GL_STREAM_DRAW);
+    void* mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+    memcpy(mappedBuffer, data, width * height * 3);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+
 
 
     cout << pixelr << " " << pixelg << " " << pixelb << endl;
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
