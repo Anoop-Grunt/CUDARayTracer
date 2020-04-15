@@ -156,15 +156,24 @@ int main()
     ///seems like the char * data is because char is 8 bytes and thats whats needed for 255 intesity values, also the image seems to be stored as R1, G1, B1, R2, G2, B2 etc
     ///Maybe this can be copied into a pixel buffer, also converting from an array to this format may not be too hard
 
+    vector<char> data2;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0;j < width;j++) {
+            data2.push_back(255);
+            data2.push_back(0);
+            data2.push_back(255);
+        }
+    }
+
     unsigned int pbo;
     glGenBuffers(1, &pbo);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * 3, NULL, GL_STREAM_DRAW);
     void* mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-    memcpy(mappedBuffer, data, width * height * 3);
+    memcpy(mappedBuffer, &data2[0], width * height * 3);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-
+  
 
 
     cout << pixelr << " " << pixelg << " " << pixelb << endl;
