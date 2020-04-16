@@ -47,10 +47,10 @@ paint(unsigned char* g_odata)
 {
 	int i = threadIdx.x;
 	int off = i * 4;
-	g_odata[off] = 0;
-	g_odata[off + 1] = 0;
-	g_odata[off + 2] = 255;
-	g_odata[off + 3] = 255;
+	g_odata[off] = 180;  //red channel
+	g_odata[off + 1] = 0;  //green channel
+	g_odata[off + 2] = 255;   //blue channel
+	g_odata[off + 3] = 255;   // alpha channel
 }
 
 int main()
@@ -119,7 +119,7 @@ int main()
 	unsigned char* out_data;
 	size_t num_bytes;
 	gpuCheckErrs(cudaGraphicsResourceGetMappedPointer((void**)&out_data, &num_bytes, res));
-	paint << <1, 100 >> > (out_data);
+	paint << <1, width* height >> > (out_data);
 	cudaGraphicsUnmapResources(1, &res);
 	unsigned char* h_in;
 	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
