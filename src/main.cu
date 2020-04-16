@@ -80,22 +80,16 @@ int main()
 		0, 1, 3,
 		1, 2, 3
 	};
-	unsigned int VBO, VAO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
+
+	VertexBuffer vb(vertices, sizeof(vertices));
+	IndexBuffer eb(indices, 6);
+	VertexArray va;
 	
+	va.spec_vertex_size(8);
+	va.add_layout_spec(3);
+	va.add_layout_spec(3);
+	va.add_layout_spec(2);
+	va.AddBuffer(vb);
 	Texture t;
 	int width, height, nrChannels;
 	width = 5;
@@ -124,11 +118,6 @@ int main()
 
 
 
-
-
-
-
-
 	Shader s("res/shaders/tex_basic.shader");
 	glfwSetCursorPosCallback(window, MouseControlWrapper);
 	glfwSetScrollCallback(window, ScrollControlWrapper);
@@ -137,26 +126,18 @@ int main()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_CULL_FACE);
 
-	
-
-
-
-	
-
-
 	while (!glfwWindowShouldClose(window))
 	{
 		primary_cam.input_handler(window);
-
 		glClearColor(0.f, 0.f, 0.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		s.Bind();
 		t.Bind();
-		glBindVertexArray(VAO);
+		va.Bind();
+		eb.Bind();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		va.Unbind();
 		s.Unbind();
-
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
 
