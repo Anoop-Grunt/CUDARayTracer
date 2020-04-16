@@ -23,6 +23,7 @@
 #include <stb_image/stb_image.h>
 #include "cudaGL.h"
 #include "cuda_gl_interop.h"
+#include "Texture.h"
 
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
@@ -112,7 +113,6 @@ int main()
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * nrChannels * sizeof(GLubyte), NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
 	cudaGraphicsResource* res;
 	gpuCheckErrs(cudaGraphicsGLRegisterBuffer(&res, pbo, cudaGraphicsMapFlagsNone));
 	gpuCheckErrs(cudaGraphicsMapResources(1, &res, 0));
@@ -123,12 +123,11 @@ int main()
 	cudaGraphicsUnmapResources(1, &res);
 	unsigned char* h_in;
 	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
-
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	glGenerateMipmap(GL_TEXTURE_2D);
-
 	Shader s("res/shaders/tex_basic.shader");
 	glfwSetCursorPosCallback(window, MouseControlWrapper);
 	glfwSetScrollCallback(window, ScrollControlWrapper);
@@ -136,6 +135,15 @@ int main()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_CULL_FACE);
+
+	
+
+	Texture t;
+	t.addImage("res/textures/RhoOphichius_60Da_70mm_50.jpg");
+
+	
+
+
 	while (!glfwWindowShouldClose(window))
 	{
 		primary_cam.input_handler(window);
@@ -143,7 +151,7 @@ int main()
 		glClearColor(0.f, 0.f, 0.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		s.Bind();
-		glBindTexture(GL_TEXTURE_2D, texture);
+		//t.Bind();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
