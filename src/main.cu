@@ -43,6 +43,21 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
 
+
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y) {
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	if ((i >= max_x) || (j >= max_y)) return;
+	int pixel_index = j * max_x * 4 + i * 4;
+	unsigned char r = (int)(255  *float(i) / max_x);
+	unsigned char g = (int)(255 * float(j) / max_y);
+	pix_buff_loc[pixel_index + 0] = r;
+	pix_buff_loc[pixel_index + 1] = g;
+	pix_buff_loc[pixel_index + 2] = 51;
+	pix_buff_loc[pixel_index + 3] = 255;
+}
+
+
 __global__ void
 paint(unsigned char* g_odata)
 {
@@ -61,7 +76,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -92,8 +107,8 @@ int main()
 	va.AddBuffer(vb);
 	Texture t;
 	int width, height, nrChannels;
-	width = 5;
-	height = 5;
+	width = 80;
+	height = 45;
 	nrChannels = 4;
 
 	unsigned int pbo;
@@ -107,7 +122,16 @@ int main()
 	unsigned char* out_data;
 	size_t num_bytes;
 	gpuCheckErrs(cudaGraphicsResourceGetMappedPointer((void**)&out_data, &num_bytes, res));
-	paint << <1, width* height >> > (out_data);
+
+	int tx = 8;
+	int ty = 8;
+	dim3 blocks(width / tx + 1, height / ty + 1);
+	dim3 threads(tx, ty);
+
+
+
+
+	render << <blocks, threads >> > (out_data, width, height);
 	cudaGraphicsUnmapResources(1, &res);
 	unsigned char* h_in;
 	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
