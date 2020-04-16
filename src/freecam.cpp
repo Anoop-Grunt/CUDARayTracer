@@ -48,7 +48,6 @@ void freecam::input_handler(GLFWwindow* window)
 		worldUP = glm::vec3(_.x, _.y, _.z);
 	}
 	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
-
 		worldUP = glm::vec3(0.f, 1.f, 0.f);
 		CamPos = glm::vec3(0.0f, 0.0f, 3.0f);
 		CamFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -98,22 +97,19 @@ void freecam::mouse_handler(GLFWwindow* window, double mouse_x, double mouse_y)
 
 void freecam::scroll_handler(GLFWwindow* window, double x_disp, double y_disp)
 {
-		if (field_of_view >= 1.0f && field_of_view <= 45.0f)
-			field_of_view -= y_disp;
-		if (field_of_view <= 1.0f)
-			field_of_view = 1.0f;
-		if (field_of_view >= 45.0f)
-			field_of_view = 45.0f;
+	if (field_of_view >= 1.0f && field_of_view <= 45.0f)
+		field_of_view -= y_disp;
+	if (field_of_view <= 1.0f)
+		field_of_view = 1.0f;
+	if (field_of_view >= 45.0f)
+		field_of_view = 45.0f;
 }
-
-
 
 glm::mat4 freecam::view()
 {
 	glm::mat4 view = glm::mat4(1.0f);
 	view = glm::lookAt(CamPos, CamFront + CamPos, worldUP);
 	return view;
-
 }
 
 glm::mat4 freecam::projection()

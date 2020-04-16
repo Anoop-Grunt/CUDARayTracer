@@ -5,7 +5,6 @@
 
 class VertexArray
 {
-
 public:
 
 	VertexArray();
@@ -20,6 +19,4 @@ public:
 	unsigned int vertex_size;
 	std::vector<int> layouts;
 	int offset;
-
 };
-

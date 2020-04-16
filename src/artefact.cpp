@@ -3,8 +3,6 @@ using namespace std;
 
 scene_artefact::scene_artefact(std::string const& path)
 
-	
-
 {
 	Assimp::Importer import;
 	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FindInvalidData);
@@ -21,7 +19,6 @@ scene_artefact::scene_artefact(std::string const& path)
 		blend_indices_approximate[alphas[i]] = i;
 	}
 	//make sure all the artefacts mesh-materials have different alphas
-
 }
 
 scene_artefact::~scene_artefact()
@@ -60,11 +57,10 @@ void scene_artefact::quick_illustrate_unstable(Shader shader, glm::mat4 model)
 		shader.setUniform4f("material.specular", specs[i].x, specs[i].y, specs[i].z, 1.f);
 		shader.setUniformfloat("material.shininess", 200.0);
 		meshes[i].draw();
-		
 	}
 }
 
-void scene_artefact::solve_child(aiNode* node,const aiScene* scene)
+void scene_artefact::solve_child(aiNode* node, const aiScene* scene)
 {
 	blend_control += 1;
 	for (int i = 0; i < node->mNumMeshes;i++) {

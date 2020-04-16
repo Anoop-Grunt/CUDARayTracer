@@ -7,7 +7,7 @@
 class mesh_prototype
 {
 public:
-	mesh_prototype(float* vertices,unsigned int * indices, unsigned int vbsize, unsigned int ibsize);
+	mesh_prototype(float* vertices, unsigned int* indices, unsigned int vbsize, unsigned int ibsize);
 	~mesh_prototype();
 	void draw();
 private:
@@ -17,7 +17,3 @@ private:
 	unsigned int* indices;
 	IndexBuffer ib;
 };
-
-
-
-

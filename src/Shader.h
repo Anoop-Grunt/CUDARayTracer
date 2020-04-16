@@ -23,7 +23,7 @@ public:
 	void setUniform4f(const std::string& name, float f1, float f2, float f3, float f4);
 	void setUniform4mat4f(const std::string& name, const glm::mat4 matrix);
 	void setUniformfloat(const std::string& name, const float f1);
-	
+
 private:
 	unsigned int m_RendererID;
 	//uniforms cahcing
@@ -33,5 +33,3 @@ private:
 	unsigned int CompileShader(GLenum type, std::string source);
 	ShaderProgramSource ParseShader(const std::string& filepath);
 };
-
-

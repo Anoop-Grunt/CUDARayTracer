@@ -8,13 +8,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 void main() {
-
-    gl_Position = projection*view*model*position;
-    vertex_color = v_color;
-
+	gl_Position = projection * view * model * position;
+	vertex_color = v_color;
 };
-
-
 
 #shader fragment
 #version 460 core
@@ -22,7 +18,5 @@ void main() {
 out vec4 color;
 in vec4 vertex_color;
 void main() {
-
-    color = vertex_color;
-
+	color = vertex_color;
 };

@@ -24,7 +24,6 @@ in vec2 TexCoord;
 // texture samplers
 uniform sampler2D texture1;
 
-
 void main()
 {
 	// linearly interpolate between both textures (80% container, 20% awesomeface)

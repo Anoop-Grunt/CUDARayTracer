@@ -5,8 +5,6 @@
 #include<fstream>
 using namespace std;
 
-
-
 Shader::Shader(const std::string& filepath)
 	:m_filepath(filepath), m_RendererID(0)
 {
@@ -43,7 +41,6 @@ void Shader::setUniformfloat(const std::string& name, const float f1)
 	glUniform1f(location, f1);
 }
 
-
 unsigned int Shader::GetUniformLocation(const std::string& name)
 {
 	int location = glGetUniformLocation(m_RendererID, name.c_str());
@@ -52,7 +49,6 @@ unsigned int Shader::GetUniformLocation(const std::string& name)
 	}
 	return location;
 }
-
 
 int Shader::CreateShader(std::string vertex_shader_source, std::string fragment_shader_source) {
 	unsigned int program = glCreateProgram();
@@ -117,9 +113,5 @@ ShaderProgramSource Shader::ParseShader(const std::string& filepath) {
 void Shader::setUniform4mat4f(const std::string& name, const glm::mat4 matrix)
 
 {
-
 	glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]);
-
 }
-
-

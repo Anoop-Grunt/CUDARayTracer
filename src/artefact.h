@@ -14,7 +14,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include  <map>
 
-
 class scene_artefact
 {
 public:
@@ -36,6 +35,5 @@ private:
 	std::vector<float> alphas;
 	std::vector<float> shines;
 	int blend_control = 0;
-	void solve_child(aiNode* node,const aiScene* scene);
+	void solve_child(aiNode* node, const aiScene* scene);
 };
-
