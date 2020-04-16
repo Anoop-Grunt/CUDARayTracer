@@ -95,14 +95,8 @@ int main()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
-	unsigned int texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+	
+	Texture t;
 	int width, height, nrChannels;
 	width = 5;
 	height = 5;
@@ -125,9 +119,16 @@ int main()
 	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	t.use_pbo(width, height);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-	glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+
+
+
+
+
 	Shader s("res/shaders/tex_basic.shader");
 	glfwSetCursorPosCallback(window, MouseControlWrapper);
 	glfwSetScrollCallback(window, ScrollControlWrapper);
@@ -138,8 +139,7 @@ int main()
 
 	
 
-	Texture t;
-	t.addImage("res/textures/RhoOphichius_60Da_70mm_50.jpg");
+
 
 	
 
@@ -151,7 +151,7 @@ int main()
 		glClearColor(0.f, 0.f, 0.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		s.Bind();
-		//t.Bind();
+		t.Bind();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);

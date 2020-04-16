@@ -10,6 +10,7 @@ public:
 	void Bind();
 	void Unbind();
 	void addImage(const char* path);
+	void use_pbo(int width, int height);
 private:
 	unsigned int m_RendererID;
 	int m_Height;

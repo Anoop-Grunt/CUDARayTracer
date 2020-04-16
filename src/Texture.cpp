@@ -44,3 +44,14 @@ void Texture::addImage(const char* path)
 	stbi_image_free(data);
 	glBindTexture(GL_TEXTURE_2D, boundTexture);
 }
+
+void Texture::use_pbo(int width, int height)
+{
+	GLuint boundTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&boundTexture);
+	Bind();
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	Unbind();
+	glBindTexture(GL_TEXTURE_2D, boundTexture);
+}
