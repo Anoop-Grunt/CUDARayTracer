@@ -57,16 +57,12 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
-	float u = i / max_x;
-	float v = j / max_y;
-	glm::vec3 v5(lower_left_corner.x, lower_left_corner.y, lower_left_corner.z);
-	glm::vec3 v6(horizontal.x, horizontal.y, horizontal.z);
-	glm::vec3 v7(vertical.x, vertical.y, vertical.z);
-	glm::vec3 v8(origin.x, origin.y, origin.z);
-	ray r1(v8, v5 + u * v6 + v * v7);
+	auto u = float(i) / max_x;
+	auto v = float(j) / max_y;
+	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
 	vec3 dir = glm::normalize(r1.get_direction());
 	float t = 0.5f * (dir.y + 1.0f);
-	vec3 col = (float)(1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+	vec3 col = (float)(1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.2, 0.2, 1.0);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -143,15 +139,15 @@ int main()
 	size_t num_bytes;
 	gpuCheckErrs(cudaGraphicsResourceGetMappedPointer((void**)&out_data, &num_bytes, res));
 
-	int tx = 8;
-	int ty = 8;
+	int tx = 8;//threads x
+	int ty = 8;//threads y
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
-	glm::vec3 lower_left_corner(0.f, 250.f, 200.f);
-	glm::vec3 horizontal(4.f, 0.f, 0.f);
-	glm::vec3 vertical(0.f, 2.f, 0.f);
-	glm::vec3 origin(0.f, 0.f, 0.f);
+	vec3 lower_left_corner(-2.0, -1.0, -1.0);
+	vec3 horizontal(4.0, 0.0, 0.0);
+	vec3 vertical(0.0, 2.0, 0.0);
+	vec3 origin(0.0, 0.0, 0.0);
 	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin);
 	cudaGraphicsUnmapResources(1, &res);
 
