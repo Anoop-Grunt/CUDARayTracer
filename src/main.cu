@@ -70,7 +70,7 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 	{
 		
 		vec3 sky_col;
-		int index = sv * 1200 * 3 + su * 3;
+		int index = sv * 1920 * 3 + su * 3;
 		int r = (int)sky[index] ;
 		float rc = (float)r / 255;
 		int g = (int)sky[index+1];
@@ -124,7 +124,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1200, 601, "CUDA project", glfwGetPrimaryMonitor(), NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -155,8 +155,8 @@ int main()
 	va.AddBuffer(vb);
 	Texture t;
 	int width, height, nrChannels;
-	width = 1200;
-	height = 601;
+	width = 1920;
+	height = 1080;
 	nrChannels = 4;
 
 	unsigned int pbo;
@@ -178,15 +178,15 @@ int main()
 
 	int w, h, n;
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load("res/textures/sky.jpg", &w, &h, &n, 0);
+	unsigned char* data = stbi_load("res/textures/sky2.jpg", &w, &h, &n, 0);
 	unsigned char* sky;
 	cudaMalloc(&sky, w * h * 3);
 	cudaMemcpy(sky, data, w * h * 3, cudaMemcpyHostToDevice);
 
 
-	vec3 lower_left_corner(-2.0, -1.0, -1.0);
-	vec3 horizontal(4.0, 0.0, 0.0);
-	vec3 vertical(0.0, 2.0, 0.0);
+	vec3 lower_left_corner(-1.6, -0.9, -1.0);
+	vec3 horizontal(3.2, 0.0, 0.0);
+	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
 	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky);
 	cudaGraphicsUnmapResources(1, &res);

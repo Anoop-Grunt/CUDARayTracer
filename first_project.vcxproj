@@ -123,6 +123,7 @@
     <Image Include="res\textures\RhoOphichius_60Da_70mm_50.jpg" />
     <Image Include="res\textures\RhoOphichius_60Da_70mm_502.jpg" />
     <Image Include="res\textures\sky.jpg" />
+    <Image Include="res\textures\sky2.jpg" />
     <Image Include="res\textures\white.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
