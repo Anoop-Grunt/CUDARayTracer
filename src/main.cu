@@ -62,9 +62,9 @@ __device__ bool sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
 
 
 __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
-	if (sphere_ray_hit_test(vec3(0, 0, -5), 0.5, r))
+	if (sphere_ray_hit_test(vec3(0, 0, -1.5), 0.5, r))
 	{
-		return vec3(0, 0, 1);
+		return vec3(0.68, 0, 1);
 	}
 	else
 	{
@@ -124,7 +124,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1200, 601, "CUDA project", NULL, NULL);
+	window = glfwCreateWindow(1200, 601, "CUDA project", glfwGetPrimaryMonitor(), NULL);
 	if (!window)
 	{
 		glfwTerminate();
