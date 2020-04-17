@@ -51,7 +51,7 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 
 
 
-__device__ bool hit_sphere(const vec3 center, float radius,  ray r) {
+__device__ bool sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
 	vec3 oc = r.get_origin() - center;
 	auto a = glm::dot(r.get_direction(), r.get_direction());  
 	auto b = 2.0 * glm::dot(oc, r.get_direction());
@@ -62,15 +62,15 @@ __device__ bool hit_sphere(const vec3 center, float radius,  ray r) {
 
 
 __device__ vec3 pix_data(ray r) {
-	if (hit_sphere(vec3(0, 0, -1), 0.5, r))
+	if (sphere_ray_hit_test(vec3(0, 0, -1), 0.5, r))
 	{
-		return vec3(1, 0, 1);
+		return vec3(0, 0, 1);
 	}
 	else
 	{
 		vec3 dir = normalize(r.get_direction());
 		float t = 0.5f * (dir.y + 1.0f);
-		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.2, 0.2, 1.0);
+		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.68, 0.0, 1.0);
 	}
 
 }
