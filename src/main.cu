@@ -61,22 +61,32 @@ __device__ bool sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
 }
 
 
-__device__ vec3 pix_data(ray r) {
-	if (sphere_ray_hit_test(vec3(0, 0, -1), 0.5, r))
+__device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
+	if (sphere_ray_hit_test(vec3(0, 0, -5), 0.5, r))
 	{
 		return vec3(0, 0, 1);
 	}
 	else
 	{
-		vec3 dir = normalize(r.get_direction());
-		float t = 0.5f * (dir.y + 1.0f);
-		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.68, 0.0, 1.0);
+		
+		vec3 sky_col;
+		int index = sv * 1200 * 3 + su * 3;
+		int r = (int)sky[index] ;
+		float rc = (float)r / 255;
+		int g = (int)sky[index+1];
+		float gc = (float)g / 255;
+		int b = (int)sky[index+2];
+		float bc = (float)b / 255;
+		sky_col.x = rc;
+		sky_col.y = gc;
+		sky_col.z = bc;
+		return sky_col;
 	}
 
 }
 
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -84,9 +94,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	auto u = float(i) / max_x;
 	auto v = float(j) / max_y;
 	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
-	vec3 dir = glm::normalize(r1.get_direction());
-	float t = 0.5f * (dir.y + 1.0f);
-	vec3 col = pix_data(r1);
+	vec3 col = pix_data(r1, sky, i, j);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -116,7 +124,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 960, "CUDA project", NULL, NULL);
+	window = glfwCreateWindow(1200, 601, "CUDA project", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -147,8 +155,8 @@ int main()
 	va.AddBuffer(vb);
 	Texture t;
 	int width, height, nrChannels;
-	width = 200;
-	height = 100;
+	width = 1200;
+	height = 601;
 	nrChannels = 4;
 
 	unsigned int pbo;
@@ -168,15 +176,22 @@ int main()
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
+	int w, h, n;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load("res/textures/sky.jpg", &w, &h, &n, 0);
+	unsigned char* sky;
+	cudaMalloc(&sky, w * h * 3);
+	cudaMemcpy(sky, data, w * h * 3, cudaMemcpyHostToDevice);
+
+
 	vec3 lower_left_corner(-2.0, -1.0, -1.0);
 	vec3 horizontal(4.0, 0.0, 0.0);
 	vec3 vertical(0.0, 2.0, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky);
 	cudaGraphicsUnmapResources(1, &res);
 
 	
-
 	
 
 

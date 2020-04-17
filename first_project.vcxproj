@@ -118,9 +118,11 @@
     <None Include="res\shaders\tex_basic.shader" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\textures\r2.jpg" />
     <Image Include="res\textures\red.jpg" />
     <Image Include="res\textures\RhoOphichius_60Da_70mm_50.jpg" />
     <Image Include="res\textures\RhoOphichius_60Da_70mm_502.jpg" />
+    <Image Include="res\textures\sky.jpg" />
     <Image Include="res\textures\white.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
