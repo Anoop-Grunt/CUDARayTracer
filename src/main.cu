@@ -1,3 +1,4 @@
+
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
@@ -9,14 +10,9 @@
 #include "IndexBuffer.h"
 #include "vert_array_quick_bind.h"
 #include "Global_Bind_Test.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include "freecam.h"
 #include <functional>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+
 #include <fstream>
 #include <sstream>
 #include "artefact.h"
@@ -25,6 +21,15 @@
 #include "cuda_gl_interop.h"
 #include "Texture.h"
 
+#include "ray.cuh"
+
+
+
+
+
+
+
+using namespace glm;
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
@@ -44,18 +49,33 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 }
 
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y) {
+
+
+
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
-	unsigned char r = (int)(255  *float(i) / max_x);
-	unsigned char g = (int)(255 * float(j) / max_y);
-	pix_buff_loc[pixel_index + 0] = r;
-	pix_buff_loc[pixel_index + 1] = g;
-	pix_buff_loc[pixel_index + 2] = 51;
+	float u = i / max_x;
+	float v = j / max_y;
+	glm::vec3 v5(lower_left_corner.x, lower_left_corner.y, lower_left_corner.z);
+	glm::vec3 v6(horizontal.x, horizontal.y, horizontal.z);
+	glm::vec3 v7(vertical.x, vertical.y, vertical.z);
+	glm::vec3 v8(origin.x, origin.y, origin.z);
+	ray r1(v8, v5 + u * v6 + v * v7);
+	vec3 dir = glm::normalize(r1.get_direction());
+	float t = 0.5f * (dir.y + 1.0f);
+	vec3 col = (float)(1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+	unsigned char r = (int)(255 * col.x);
+	unsigned char g = (int)(255 * col.y);
+	unsigned char b = (int)(255 * col.z);
+	pix_buff_loc[pixel_index + 0] = (int)r;
+	pix_buff_loc[pixel_index + 1] = (int)g;
+	pix_buff_loc[pixel_index + 2] = (int)b;
 	pix_buff_loc[pixel_index + 3] = 255;
 }
+
 
 
 __global__ void
@@ -76,7 +96,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
+	window = glfwCreateWindow(1920, 960, "CUDA project", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -107,8 +127,8 @@ int main()
 	va.AddBuffer(vb);
 	Texture t;
 	int width, height, nrChannels;
-	width = 80;
-	height = 45;
+	width = 200;
+	height = 100;
 	nrChannels = 4;
 
 	unsigned int pbo;
@@ -128,13 +148,19 @@ int main()
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
-
-
-
-	render << <blocks, threads >> > (out_data, width, height);
+	glm::vec3 lower_left_corner(0.f, 250.f, 200.f);
+	glm::vec3 horizontal(4.f, 0.f, 0.f);
+	glm::vec3 vertical(0.f, 2.f, 0.f);
+	glm::vec3 origin(0.f, 0.f, 0.f);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin);
 	cudaGraphicsUnmapResources(1, &res);
-	unsigned char* h_in;
-	h_in = (unsigned char*)malloc(width * height * nrChannels * sizeof(GLubyte));
+
+	
+
+	
+
+
+
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	t.use_pbo(width, height);

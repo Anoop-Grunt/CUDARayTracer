@@ -58,6 +58,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>$(SolutionDir)dependencies\assimp\also_include;$(SolutionDir)dependencies\assimp\include;$(SolutionDir)src\vendor;$(SolutionDir)dependencies\GLEW\include;$(SolutionDir)dependencies\GLFW\include64</Include>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -81,6 +82,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="src\main.cu" />
+    <CudaCompile Include="src\ray.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\artefact.cpp" />
@@ -99,6 +101,7 @@
     <ClInclude Include="src\freecam.h" />
     <ClInclude Include="src\Global_Bind_Test.h" />
     <ClInclude Include="src\IndexBuffer.h" />
+    <ClInclude Include="src\ray.cuh" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Shader.h" />
     <ClInclude Include="src\Texture.h" />
