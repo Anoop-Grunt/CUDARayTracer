@@ -49,12 +49,31 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 }
 
 
-__device__ vec3 color( ray r) {
-	vec3 dir = normalize(r.get_direction());
-	float t = 0.5f * (dir.y + 1.0f);
-	return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.2, 0.2, 1.0);
+
+
+__device__ bool hit_sphere(const vec3 center, float radius,  ray r) {
+	vec3 oc = r.get_origin() - center;
+	auto a = glm::dot(r.get_direction(), r.get_direction());  
+	auto b = 2.0 * glm::dot(oc, r.get_direction());
+	auto c = glm::dot(oc, oc) - radius * radius;
+	auto discriminant = b * b - 4 * a * c;
+	return (discriminant > 0);
 }
 
+
+__device__ vec3 pix_data(ray r) {
+	if (hit_sphere(vec3(0, 0, -1), 0.5, r))
+	{
+		return vec3(1, 0, 1);
+	}
+	else
+	{
+		vec3 dir = normalize(r.get_direction());
+		float t = 0.5f * (dir.y + 1.0f);
+		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.2, 0.2, 1.0);
+	}
+
+}
 
 
 __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin) {
@@ -67,7 +86,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
 	vec3 dir = glm::normalize(r1.get_direction());
 	float t = 0.5f * (dir.y + 1.0f);
-	vec3 col = color(r1);
+	vec3 col = pix_data(r1);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
