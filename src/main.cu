@@ -49,6 +49,11 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 }
 
 
+__device__ vec3 color( ray r) {
+	vec3 dir = normalize(r.get_direction());
+	float t = 0.5f * (dir.y + 1.0f);
+	return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.2, 0.2, 1.0);
+}
 
 
 
@@ -62,7 +67,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
 	vec3 dir = glm::normalize(r1.get_direction());
 	float t = 0.5f * (dir.y + 1.0f);
-	vec3 col = (float)(1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.0, 0.0, 1.0);
+	vec3 col = color(r1);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
