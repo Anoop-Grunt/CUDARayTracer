@@ -72,11 +72,11 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 		vec3 sky_col;
 		int index = sv * 1920 * 3 + su * 3;
 		int r = (int)sky[index] ;
-		float rc = (float)r / 255;
+		float rc = (float)((float)r / 255);
 		int g = (int)sky[index+1];
-		float gc = (float)g / 255;
+		float gc = (float)((float)g / 255);
 		int b = (int)sky[index+2];
-		float bc = (float)b / 255;
+		float bc = (float)((float)b / 255);
 		sky_col.x = rc;
 		sky_col.y = gc;
 		sky_col.z = bc;
@@ -98,9 +98,9 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
-	pix_buff_loc[pixel_index + 0] = (int)r;
-	pix_buff_loc[pixel_index + 1] = (int)g;
-	pix_buff_loc[pixel_index + 2] = (int)b;
+	pix_buff_loc[pixel_index + 0] = (int)r + 1;
+	pix_buff_loc[pixel_index + 1] = (int)g ;
+	pix_buff_loc[pixel_index + 2] = (int)b ;
 	pix_buff_loc[pixel_index + 3] = 255;
 }
 
@@ -178,7 +178,7 @@ int main()
 
 	int w, h, n;
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load("res/textures/sky2.jpg", &w, &h, &n, 0);
+	unsigned char* data = stbi_load("res/textures/sky3.jpg", &w, &h, &n, 0);
 	unsigned char* sky;
 	cudaMalloc(&sky, w * h * 3);
 	cudaMemcpy(sky, data, w * h * 3, cudaMemcpyHostToDevice);
