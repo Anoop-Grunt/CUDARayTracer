@@ -95,7 +95,6 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 
 
 __device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere * sph) {
-	*sph = sphere(vec3(0.f, 0.f, -1.5f), 0.5f);
 	hit_record rec;
 	bool hit = sph->hit(r, 0.f, 10000.f, rec);
 	if (hit)
@@ -147,7 +146,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 }
 
 __global__ void add_sphere(sphere * sph) {
-	*sph = sphere(vec3(0.f, 0.f, -1.5f), 0.5f);
+	*sph = sphere(vec3(-0.6f, 0.f, -1.5f), 0.25f);
 }
 
 __global__ void
