@@ -83,6 +83,7 @@
   <ItemGroup>
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\ray.cu" />
+    <CudaCompile Include="src\sphere.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\artefact.cpp" />
@@ -102,8 +103,10 @@
     <ClInclude Include="src\Global_Bind_Test.h" />
     <ClInclude Include="src\IndexBuffer.h" />
     <ClInclude Include="src\ray.cuh" />
+    <ClInclude Include="src\ray_trigger.cuh" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\sphere.cuh" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\vendor\stb_image\stb_image.h" />
     <ClInclude Include="src\VertexBuffer.h" />

@@ -21,8 +21,9 @@
 #include "cuda_gl_interop.h"
 #include "Texture.h"
 
-#include "ray.cuh"
 
+#include "ray.cuh"
+#include "sphere.cuh"
 
 
 
@@ -47,8 +48,6 @@ void MouseControlWrapper(GLFWwindow* window, double mouse_x, double mouse_y) {
 void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
-
-
 
 
 __device__ float sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
@@ -95,7 +94,41 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 }
 
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky) {
+__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere * sph) {
+	*sph = sphere(vec3(0.f, 0.f, -1.5f), 0.5f);
+	hit_record rec;
+	bool hit = sph->hit(r, 0.f, 10000.f, rec);
+	if (hit)
+	{
+		
+		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
+		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+
+	}
+	else
+	{
+
+		vec3 sky_col;
+		int index = sv * 1920 * 3 + su * 3;
+		int r = (int)sky[index];
+		float rc = (float)((float)r / 255);
+		int g = (int)sky[index + 1];
+		float gc = (float)((float)g / 255);
+		int b = (int)sky[index + 2];
+		float bc = (float)((float)b / 255);
+		sky_col.x = rc;
+		sky_col.y = gc;
+		sky_col.z = bc;
+		return sky_col;
+	}
+
+}
+
+
+
+
+
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere* sph) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -103,7 +136,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	auto u = float(i) / max_x;
 	auto v = float(j) / max_y;
 	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
-	vec3 col = pix_data(r1, sky, i, j);
+	vec3 col = pix_data2(r1, sky, i, j, sph);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -113,7 +146,9 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	pix_buff_loc[pixel_index + 3] = 255;
 }
 
-
+__global__ void add_sphere(sphere * sph) {
+	*sph = sphere(vec3(0.f, 0.f, -1.5f), 0.5f);
+}
 
 __global__ void
 paint(unsigned char* g_odata)
@@ -133,7 +168,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -185,6 +220,8 @@ int main()
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
+	//setting up the sky
+
 	int w, h, n;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data = stbi_load("res/textures/sky3.jpg", &w, &h, &n, 0);
@@ -192,12 +229,22 @@ int main()
 	cudaMalloc(&sky, w * h * 3);
 	cudaMemcpy(sky, data, w * h * 3, cudaMemcpyHostToDevice);
 
+	//setting up the rest of the scene
+
+	sphere * dev_trig;
+	cudaMalloc(&dev_trig, sizeof(sphere));
+	add_sphere << < 1, 1 >> > (dev_trig);
+
+
+
+
+
 
 	vec3 lower_left_corner(-1.6, -0.9, -1.0);
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, dev_trig);
 	cudaGraphicsUnmapResources(1, &res);
 
 	

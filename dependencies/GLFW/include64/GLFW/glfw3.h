@@ -3664,7 +3664,7 @@ GLFWAPI GLFWwindowsizefun glfwSetWindowSizeCallback(GLFWwindow* window, GLFWwind
  *
  *  @errors Possible errors include @ref GLFW_NOT_INITIALIZED.
  *
- *  @remark @macos Selecting Quit from the application menu will trigger the
+ *  @remark @macos Selecting Quit from the application menu will trigger_test the
  *  close callback for all windows.
  *
  *  @thread_safety This function must only be called from the main thread.
