@@ -1,7 +1,5 @@
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
 #include<GL/glew.h>
 #include<iostream>
 #include <GLFW/glfw3.h>
@@ -12,7 +10,6 @@
 #include "Global_Bind_Test.h"
 #include "freecam.h"
 #include <functional>
-
 #include <fstream>
 #include <sstream>
 #include "artefact.h"
@@ -20,18 +17,11 @@
 #include "cudaGL.h"
 #include "cuda_gl_interop.h"
 #include <thrust/device_vector.h>
-
 #include "Texture.h"
-
-
 #include "ray.cuh"
 #include "sphere.cuh"
 #include "scene.cuh"
 #include <float.h>
-
-
-
-
 
 using namespace glm;
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -45,101 +35,17 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 }
 using namespace std;
 freecam primary_cam;
+
 void MouseControlWrapper(GLFWwindow* window, double mouse_x, double mouse_y) {
 	primary_cam.mouse_handler(window, mouse_x, mouse_y);
 }
+
 void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
 
-
-__device__ float sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
-	vec3 oc = r.get_origin() - center;
-	float a = glm::dot(r.get_direction(), r.get_direction());  
-	float h =  glm::dot(oc, r.get_direction());
-	float c = glm::dot(oc, oc) - radius * radius;
-	float discriminant = h * h -  a * c;
-	if (discriminant < 0) {
-		return -1.0f;
-	}
-	else {
-		return (-h - sqrt(discriminant)) / ( a);
-	}
-	
-}
-
-
-__device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
-	float t = sphere_ray_hit_test(vec3(-1.5f, 0.5f, -1.5f), 0.5f, r);
-	if (t > 0.f)
-	{
-		vec3 N = r.get_point_at_t(t) - vec3(-1.5f, 0.f, -4.5f);
-		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
-		
-	}
-	else
-	{
-		
-		vec3 sky_col;
-		int index = sv * 1920 * 3 + su * 3;
-		int r = (int)sky[index] ;
-		float rc = (float)((float)r / 255);
-		int g = (int)sky[index+1];
-		float gc = (float)((float)g / 255);
-		int b = (int)sky[index+2];
-		float bc = (float)((float)b / 255);
-		sky_col.x = rc;
-		sky_col.y = gc;
-		sky_col.z = bc;
-		return sky_col;
-	}
-
-}
-__global__ void make_scene(sphere ** spheres, scene ** dev_ptr, int count){
+__global__ void make_scene(sphere** spheres, scene** dev_ptr, int count) {
 	*dev_ptr = new scene(spheres, count);
-}
-
-__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere ** sph, int count) {
-	hit_record rec;
-	hit_record rec2;
-	bool hit = sph[0]->hit(r, 0.0, FLT_MAX, rec);
-	bool hit2 = sph[1]->hit(r, 0.0, FLT_MAX, rec2);
-	
-	hit_record temp_rec;
-	bool temp_hit = false;
-	for (int i = 0; i < count; i++) {
-		if (sph[i]->hit(r, 0.0, FLT_MAX, temp_rec)) {
-			temp_hit = true;
-			break;
-		}
-	}
-
-
-
-	if (temp_hit)
-	{
-		vec3 N = vec3(temp_rec.normal.x, temp_rec.normal.y, temp_rec.normal.z);
-		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
-		
-	}
-	
-	else
-	{
-
-		vec3 sky_col;
-		int index = sv * 1920 * 3 + su * 3;
-		int r = (int)sky[index];
-		float rc = (float)((float)r / 255);
-		int g = (int)sky[index + 1];
-		float gc = (float)((float)g / 255);
-		int b = (int)sky[index + 2];
-		float bc = (float)((float)b / 255);
-		sky_col.x = rc;
-		sky_col.y = gc;
-		sky_col.z = bc;
-		return sky_col;
-	}
-
 }
 
 __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc) {
@@ -150,12 +56,10 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc)
 	{
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
 		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
-
 	}
 
 	else
 	{
-
 		vec3 sky_col;
 		int index = sv * 1920 * 3 + su * 3;
 		int r = (int)sky[index];
@@ -169,12 +73,9 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc)
 		sky_col.z = bc;
 		return sky_col;
 	}
-
 }
 
-
-
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere** sph, int count, scene ** sc) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char* sky, scene** sc) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -187,23 +88,16 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
 	pix_buff_loc[pixel_index + 0] = (int)r + 1;
-	pix_buff_loc[pixel_index + 1] = (int)g ;
-	pix_buff_loc[pixel_index + 2] = (int)b ;
+	pix_buff_loc[pixel_index + 1] = (int)g;
+	pix_buff_loc[pixel_index + 2] = (int)b;
 	pix_buff_loc[pixel_index + 3] = 255;
-}
-
-__global__ void add_sphere(sphere * sph) {
-	*sph = sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
 	*(sph) = new  sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
-	*(sph + 1) =  new sphere(vec3(1.5f, 0.00005f, -4.5f), 0.5f);
+	*(sph + 1) = new sphere(vec3(1.5f, 0.00005f, -4.5f), 0.5f);
 	*(sph + 2) = new sphere(vec3(0.f, 0.5f, -4.5f), 0.5f);
 }
-
-
-
 
 int main()
 {
@@ -235,7 +129,7 @@ int main()
 	VertexBuffer vb(vertices, sizeof(vertices));
 	IndexBuffer eb(indices, 6);
 	VertexArray va;
-	
+
 	va.spec_vertex_size(8);
 	va.add_layout_spec(3);
 	va.add_layout_spec(3);
@@ -275,35 +169,25 @@ int main()
 
 	//setting up the rest of the scene
 
-	
-	
-
 	sphere** spheres;
-	cudaMalloc(&spheres, sizeof(sphere*)*3);
+	cudaMalloc(&spheres, sizeof(sphere*) * 3);
 	add_spheres << < 1, 1 >> > (spheres, 3);
 
 	scene** sc;
-	cudaMalloc(&sc, sizeof(scene *));
-	make_scene << < 1, 1>> > (spheres,sc,3);
+	cudaMalloc(&sc, sizeof(scene*));
+	make_scene << < 1, 1 >> > (spheres, sc, 3);
 
 	vec3 lower_left_corner(-1.6, -0.9, -1.0);
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, spheres, 3, sc);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, sc);
 	cudaGraphicsUnmapResources(1, &res);
-
-	
-	
-
-
 
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	t.use_pbo(width, height);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-
 
 	Shader s("res/shaders/tex_basic.shader");
 	glfwSetCursorPosCallback(window, MouseControlWrapper);
