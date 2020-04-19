@@ -26,6 +26,7 @@
 
 #include "ray.cuh"
 #include "sphere.cuh"
+#include "scene.cuh"
 #include <float.h>
 
 
@@ -94,27 +95,32 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 	}
 
 }
+__global__ void make_scene(sphere ** spheres, scene ** dev_ptr, int count){
+	*dev_ptr = new scene(spheres, count);
+}
 
-
-__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere ** sph) {
+__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere ** sph, int count) {
 	hit_record rec;
 	hit_record rec2;
 	bool hit = sph[0]->hit(r, 0.0, FLT_MAX, rec);
 	bool hit2 = sph[1]->hit(r, 0.0, FLT_MAX, rec2);
 	
-	if (hit2||hit)
-	{
-		
-		if (hit2) {
-			vec3 N = vec3(rec2.normal.x, rec2.normal.y, rec2.normal.z);
-			return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+	hit_record temp_rec;
+	bool temp_hit = false;
+	for (int i = 0; i < count; i++) {
+		if (sph[i]->hit(r, 0.0, FLT_MAX, temp_rec)) {
+			temp_hit = true;
+			break;
 		}
-		else
-		{
-			vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
-			return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
-		}
+	}
 
+
+
+	if (temp_hit)
+	{
+		vec3 N = vec3(temp_rec.normal.x, temp_rec.normal.y, temp_rec.normal.z);
+		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		
 	}
 	
 	else
@@ -136,11 +142,39 @@ __device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere ** s
 
 }
 
+__device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc) {
+	hit_record rec;
+	bool hit = (*sc)->hit_full(r, rec);
+
+	if (hit)
+	{
+		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
+		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+
+	}
+
+	else
+	{
+
+		vec3 sky_col;
+		int index = sv * 1920 * 3 + su * 3;
+		int r = (int)sky[index];
+		float rc = (float)((float)r / 255);
+		int g = (int)sky[index + 1];
+		float gc = (float)((float)g / 255);
+		int b = (int)sky[index + 2];
+		float bc = (float)((float)b / 255);
+		sky_col.x = rc;
+		sky_col.y = gc;
+		sky_col.z = bc;
+		return sky_col;
+	}
+
+}
 
 
 
-
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere** sph) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere** sph, int count, scene ** sc) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -148,7 +182,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	auto u = float(i) / max_x;
 	auto v = float(j) / max_y;
 	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
-	vec3 col = pix_data2(r1, sky, i, j, sph);
+	vec3 col = pix_data3(r1, sky, i, j, sc);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -162,9 +196,10 @@ __global__ void add_sphere(sphere * sph) {
 	*sph = sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
 }
 
-__global__ void add_spheres(sphere** sph) {
+__global__ void add_spheres(sphere** sph, int count) {
 	*(sph) = new  sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
 	*(sph + 1) =  new sphere(vec3(1.5f, 0.00005f, -4.5f), 0.5f);
+	*(sph + 2) = new sphere(vec3(0.f, 0.5f, -4.5f), 0.5f);
 }
 
 
@@ -240,21 +275,22 @@ int main()
 
 	//setting up the rest of the scene
 
-	sphere * dev_trig;
-	cudaMalloc(&dev_trig, sizeof(sphere));
+	
 	
 
 	sphere** spheres;
-	cudaMalloc(&spheres, sizeof(sphere)*2);
-	add_spheres << < 1, 1 >> > (spheres);
+	cudaMalloc(&spheres, sizeof(sphere*)*3);
+	add_spheres << < 1, 1 >> > (spheres, 3);
 
-
+	scene** sc;
+	cudaMalloc(&sc, sizeof(scene *));
+	make_scene << < 1, 1>> > (spheres,sc,3);
 
 	vec3 lower_left_corner(-1.6, -0.9, -1.0);
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, spheres);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, spheres, 3, sc);
 	cudaGraphicsUnmapResources(1, &res);
 
 	
