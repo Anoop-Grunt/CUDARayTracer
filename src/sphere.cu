@@ -17,7 +17,7 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, hit_record& rec) {
     float h = dot(oc, r.get_direction());
     float c = dot(oc, oc) - radius * radius;
     float discriminant = h * h - a * c;
-    if (discriminant > 0) {
+    if (discriminant > -0.f){
         float temp = (-h - sqrt(discriminant)) / a;
         if (temp < t_max && temp > t_min) {
             rec.t = temp;

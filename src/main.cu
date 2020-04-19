@@ -24,7 +24,7 @@
 
 #include "ray.cuh"
 #include "sphere.cuh"
-
+#include <float.h>
 
 
 
@@ -67,10 +67,10 @@ __device__ float sphere_ray_hit_test(const vec3 center, float radius,  ray r) {
 
 
 __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
-	float t = sphere_ray_hit_test(vec3(0.f, 0.f, -1.5f), 0.5f, r);
+	float t = sphere_ray_hit_test(vec3(-1.5f, 0.5f, -1.5f), 0.5f, r);
 	if (t > 0.f)
 	{
-		vec3 N = r.get_point_at_t(t) - vec3(0.f, 0.f, -1.5f);
+		vec3 N = r.get_point_at_t(t) - vec3(-1.5f, 0.f, -4.5f);
 		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
 		
 	}
@@ -96,7 +96,7 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 
 __device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere * sph) {
 	hit_record rec;
-	bool hit = sph->hit(r, 0.f, 10000.f, rec);
+	bool hit = sph->hit(r, 0.0, FLT_MAX, rec);
 	if (hit)
 	{
 		
@@ -146,7 +146,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 }
 
 __global__ void add_sphere(sphere * sph) {
-	*sph = sphere(vec3(-0.6f, 0.f, -1.5f), 0.25f);
+	*sph = sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
 }
 
 __global__ void
