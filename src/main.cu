@@ -25,7 +25,7 @@
 #include "ray_tracing_camera.cuh"
 #include <curand_kernel.h>
 
-int sample_count = 100;
+
 
 using namespace glm;
 
@@ -92,13 +92,14 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	auto v = float(j) / max_y;*/
 	camera c;
 	vec3 col(0, 0, 0);
-	for (int s = 0; s < 100; s++) {
+	float sample_count = 2.f;
+	for (int s = 0; s < sample_count; s++) {
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
 		col += pix_data3(r1, sky, i, j, sc);
 	}
-	col = col / 100.f;
+	col = col / sample_count;
 	 //col = pix_data3(r1, sky, i, j, sc);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
