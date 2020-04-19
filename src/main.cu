@@ -49,7 +49,7 @@ __global__ void make_scene(sphere** spheres, scene** dev_ptr, int count) {
 }
 
 __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc) {
-	hit_record rec;
+	sphere_hit_details rec;
 	bool hit = (*sc)->hit_full(r, rec);
 
 	if (hit)
