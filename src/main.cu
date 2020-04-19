@@ -22,6 +22,7 @@
 #include "sphere.cuh"
 #include "scene.cuh"
 #include <float.h>
+#include "ray_tracing_camera.cuh"
 
 using namespace glm;
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -82,7 +83,8 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	int pixel_index = j * max_x * 4 + i * 4;
 	auto u = float(i) / max_x;
 	auto v = float(j) / max_y;
-	ray r1(origin, lower_left_corner + u * horizontal + v * vertical);
+	camera c;
+	ray r1 = c.get_ray(u,v);
 	vec3 col = pix_data3(r1, sky, i, j, sc);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);

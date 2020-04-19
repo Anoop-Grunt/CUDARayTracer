@@ -81,6 +81,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="src\ray_tracing_camera.cu" />
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\ray.cu" />
     <CudaCompile Include="src\scene.cu" />
@@ -100,6 +101,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\artefact.h" />
+    <ClInclude Include="src\ray_tracing_camera.cuh" />
     <ClInclude Include="src\freecam.h" />
     <ClInclude Include="src\Global_Bind_Test.h" />
     <ClInclude Include="src\IndexBuffer.h" />
