@@ -11,6 +11,7 @@ __device__ scene::~scene()
 
 __device__ bool scene::hit_full(ray r, sphere_hit_details& rec)
 {
+	//when hitting multiple spheres its better to make sure the ray hits only the closest object
 	sphere_hit_details temp_rec;
 	float closest_so_far = FLT_MAX;
 	bool temp_hit = false;
@@ -19,7 +20,7 @@ __device__ bool scene::hit_full(ray r, sphere_hit_details& rec)
 			temp_hit = true;
 			closest_so_far = temp_rec.t;
 			rec = temp_rec;
-			break;
+			
 		}
 	}
 

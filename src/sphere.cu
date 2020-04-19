@@ -19,10 +19,10 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
     float discriminant = h * h - a * c;
     if (discriminant > -0.f){
 
-        // if both roots are real, the ray hits at two points, in which case there will be an incoming and outgoing ray
+        // if both roots are real and unequal, the ray hits at two points, in which case there will be an incoming and outgoing ray
         //For the incoming ray we set  the normal in the same direction as (r(t) -cen)
         //but for outgoing ray we flip the normal, so that it points outwards from the sphere
-        
+        //the tangential case is obvioslu pretty rare, but in tht case the discrimnant is zeo
         float temp = (-h - sqrt(discriminant)) / a;
         if (temp < t_max && temp > t_min) {
             record.t = temp;
