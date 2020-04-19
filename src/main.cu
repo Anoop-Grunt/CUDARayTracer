@@ -24,6 +24,8 @@
 #include <float.h>
 #include "ray_tracing_camera.cuh"
 
+int sample_count = 100;
+
 using namespace glm;
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
@@ -76,7 +78,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc)
 	}
 }
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char* sky, scene** sc) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsigned char* sky, scene** sc) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -84,7 +86,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::v
 	auto u = float(i) / max_x;
 	auto v = float(j) / max_y;
 	camera c;
-	ray r1 = c.get_ray(u,v);
+	ray r1 = c.get_ray(u, v);
 	vec3 col = pix_data3(r1, sky, i, j, sc);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
@@ -183,7 +185,7 @@ int main()
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, sc);
+	render << <blocks, threads >> > (out_data, width, height, sky, sc);
 	cudaGraphicsUnmapResources(1, &res);
 
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
