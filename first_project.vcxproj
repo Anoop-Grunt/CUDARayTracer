@@ -101,6 +101,7 @@
     <ClInclude Include="src\artefact.h" />
     <ClInclude Include="src\freecam.h" />
     <ClInclude Include="src\Global_Bind_Test.h" />
+    <ClInclude Include="src\Header.h" />
     <ClInclude Include="src\IndexBuffer.h" />
     <ClInclude Include="src\ray.cuh" />
     <ClInclude Include="src\ray_trigger.cuh" />

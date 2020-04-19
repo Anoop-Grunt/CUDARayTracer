@@ -19,6 +19,8 @@
 #include <stb_image/stb_image.h>
 #include "cudaGL.h"
 #include "cuda_gl_interop.h"
+#include <thrust/device_vector.h>
+
 #include "Texture.h"
 
 
@@ -94,16 +96,27 @@ __device__ vec3 pix_data(ray r, unsigned char* sky, int su, int sv ) {
 }
 
 
-__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere * sph) {
+__device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere ** sph) {
 	hit_record rec;
-	bool hit = sph->hit(r, 0.0, FLT_MAX, rec);
-	if (hit)
+	hit_record rec2;
+	bool hit = sph[0]->hit(r, 0.0, FLT_MAX, rec);
+	bool hit2 = sph[1]->hit(r, 0.0, FLT_MAX, rec2);
+	
+	if (hit2||hit)
 	{
 		
-		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
-		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		if (hit2) {
+			vec3 N = vec3(rec2.normal.x, rec2.normal.y, rec2.normal.z);
+			return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		}
+		else
+		{
+			vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
+			return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		}
 
 	}
+	
 	else
 	{
 
@@ -127,7 +140,7 @@ __device__ vec3 pix_data2(ray r, unsigned char* sky, int su, int sv, sphere * sp
 
 
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere* sph) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, glm::vec3 lower_left_corner, glm::vec3 horizontal, glm::vec3 vertical, glm::vec3 origin, unsigned char*sky, sphere** sph) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
@@ -149,16 +162,13 @@ __global__ void add_sphere(sphere * sph) {
 	*sph = sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
 }
 
-__global__ void
-paint(unsigned char* g_odata)
-{
-	int i = threadIdx.x;
-	int off = i * 4;
-	g_odata[off] = 180;  //red channel
-	g_odata[off + 1] = 0;  //green channel
-	g_odata[off + 2] = 255;   //blue channel
-	g_odata[off + 3] = 255;   // alpha channel
+__global__ void add_spheres(sphere** sph) {
+	*(sph) = new  sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
+	*(sph + 1) =  new sphere(vec3(1.5f, 0.00005f, -4.5f), 0.5f);
 }
+
+
+
 
 int main()
 {
@@ -232,10 +242,11 @@ int main()
 
 	sphere * dev_trig;
 	cudaMalloc(&dev_trig, sizeof(sphere));
-	add_sphere << < 1, 1 >> > (dev_trig);
+	
 
-
-
+	sphere** spheres;
+	cudaMalloc(&spheres, sizeof(sphere)*2);
+	add_spheres << < 1, 1 >> > (spheres);
 
 
 
@@ -243,7 +254,7 @@ int main()
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, dev_trig);
+	render << <blocks, threads >> > (out_data, width, height, lower_left_corner, horizontal, vertical, origin, sky, spheres);
 	cudaGraphicsUnmapResources(1, &res);
 
 	
