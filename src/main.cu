@@ -23,10 +23,12 @@
 #include "scene.cuh"
 #include <float.h>
 #include "ray_tracing_camera.cuh"
+#include <curand_kernel.h>
 
 int sample_count = 100;
 
 using namespace glm;
+
 #define gpuCheckErrs(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
@@ -36,7 +38,9 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 		if (abort) exit(code);
 	}
 }
+
 using namespace std;
+
 freecam primary_cam;
 
 void MouseControlWrapper(GLFWwindow* window, double mouse_x, double mouse_y) {
@@ -78,16 +82,24 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc)
 	}
 }
 
-__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsigned char* sky, scene** sc) {
+__global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsigned char* sky, scene** sc, curandState* rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
-	auto u = float(i) / max_x;
-	auto v = float(j) / max_y;
+	curandState local_rand_state = rand_state[0];
+	/*auto u = float(i) / max_x;
+	auto v = float(j) / max_y;*/
 	camera c;
-	ray r1 = c.get_ray(u, v);
-	vec3 col = pix_data3(r1, sky, i, j, sc);
+	vec3 col(0, 0, 0);
+	for (int s = 0; s < 100; s++) {
+		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
+		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
+		ray r1 = c.get_ray(u, v);
+		col += pix_data3(r1, sky, i, j, sc);
+	}
+	col = col / 100.f;
+	 //col = pix_data3(r1, sky, i, j, sc);
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -95,6 +107,12 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	pix_buff_loc[pixel_index + 1] = (int)g;
 	pix_buff_loc[pixel_index + 2] = (int)b;
 	pix_buff_loc[pixel_index + 3] = 255;
+}
+
+__global__ void render_init( curandState* rand_state) {
+
+	curand_init(1984, 1456, 0, &rand_state[0]);
+
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
@@ -162,6 +180,12 @@ int main()
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
+
+	curandState* d_rand_state;
+	gpuCheckErrs(cudaMalloc((void**)&d_rand_state,  sizeof(curandState)));
+	render_init << <1, 1 >> > (d_rand_state);
+
+
 	//setting up the sky
 
 	int w, h, n;
@@ -185,7 +209,7 @@ int main()
 	vec3 horizontal(3.2, 0.0, 0.0);
 	vec3 vertical(0.0, 1.8, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
-	render << <blocks, threads >> > (out_data, width, height, sky, sc);
+	render << <blocks, threads >> > (out_data, width, height, sky, sc, d_rand_state);
 	cudaGraphicsUnmapResources(1, &res);
 
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
