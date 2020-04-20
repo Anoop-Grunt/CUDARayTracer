@@ -109,9 +109,10 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		sky_col.y = gc;
 		sky_col.z = bc;
 		return sky_col;
-		/*vec3 unit_direction = glm::normalize(r.get_direction());
+	/*	vec3 unit_direction = glm::normalize(r.get_direction());
 		float t = 0.5f * (unit_direction.y + 1.0f);
-		return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.6f, 0.f, 0.6f);*/
+		return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.9, 0.7, 1.0);
+	*/
 	}
 }
 
@@ -135,6 +136,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
+	//remove the r+1 when not using the texture
 	pix_buff_loc[pixel_index + 0] = (int)r + 1;
 	pix_buff_loc[pixel_index + 1] = (int)g;
 	pix_buff_loc[pixel_index + 2] = (int)b;
@@ -143,15 +145,18 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 
 __global__ void render_init( curandState* rand_state) {
 	int index = blockDim.x + threadIdx.x;
-	curand_init(1984, 1456, 0, &rand_state[index]);
+	curand_init(1984, index, 0, &rand_state[index]);
 
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
 
-	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(0.8, 0.6, 0.2));
-	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.f, 0.8f));
-	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f,  vec3(0.8f, 0.8f, 0.8f));
+	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(0.8, 0.8, 0.8));
+	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.9f, 0.1f, 0.98f));
+	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f,  vec3(0.15f, 0.996f, 0.15f));
+	*(sph + 3) = new sphere(vec3(1.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.2f, 0.2f));
+	*(sph + 4) = new sphere(vec3(-1.5f, .00005f, -2.5f), .5f, vec3(0.2f, 0.2f, 0.992f));
+
 
 }
 
@@ -162,7 +167,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -232,12 +237,12 @@ int main()
 	//setting up the rest of the scene
 
 	sphere** spheres;
-	cudaMalloc(&spheres, sizeof(sphere*) * 3);
-	add_spheres << < 1, 1 >> > (spheres, 3);
+	cudaMalloc(&spheres, sizeof(sphere*) * 5);
+	add_spheres << < 1, 1 >> > (spheres, 5);
 
 	scene** sc;
 	cudaMalloc(&sc, sizeof(scene*));
-	make_scene << < 1, 1 >> > (spheres, sc, 3);
+	make_scene << < 1, 1 >> > (spheres, sc, 5);
 
 	vec3 lower_left_corner(-1.6, -0.9, -1.0);
 	vec3 horizontal(3.2, 0.0, 0.0);
