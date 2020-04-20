@@ -86,7 +86,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
 		vec3 reflected_ray_dir = glm::normalize(reflect(r.get_direction(), N));
 		ray scattered = ray(rec.p, reflected_ray_dir);
-		vec3 albedo = vec3(0.7f, 0.7f, 0.7f);
+		vec3 albedo = rec.albedo;
 		if (dot(scattered.get_direction(), rec.normal) > 0) {
 			return albedo * pix_data3(scattered , sky, su, sv, sc, local_rand_state, depth - 1);
 		}
@@ -97,7 +97,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 
 	else
 	{
-		/*vec3 sky_col;
+		vec3 sky_col;
 		int index = sv * 1920 * 3 + su * 3;
 		int r = (int)sky[index];
 		float rc = (float)((float)r / 255);
@@ -108,10 +108,10 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		sky_col.x = rc;
 		sky_col.y = gc;
 		sky_col.z = bc;
-		return sky_col;*/
-		vec3 unit_direction = glm::normalize(r.get_direction());
-		float t = 0.5 * (unit_direction.y + 1.0);
-		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+		return sky_col;
+		/*vec3 unit_direction = glm::normalize(r.get_direction());
+		float t = 0.5f * (unit_direction.y + 1.0f);
+		return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.6f, 0.f, 0.6f);*/
 	}
 }
 
@@ -149,9 +149,10 @@ __global__ void render_init( curandState* rand_state) {
 
 __global__ void add_spheres(sphere** sph, int count) {
 
-	*(sph) = new  sphere(vec3(-1.5f, .00005f, -4.5f), .75f);
-	*(sph + 1) = new sphere(vec3(1.5f, .00005f, -4.5f), .75f);
-	*(sph + 2) = new sphere(vec3(0.f, .25f, -1.75f), .15f);
+	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(0.8, 0.6, 0.2));
+	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.f, 0.8f));
+	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f,  vec3(0.8f, 0.8f, 0.8f));
+
 }
 
 int main()

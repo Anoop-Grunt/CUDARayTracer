@@ -1,8 +1,8 @@
 #include "sphere.cuh"
 
 
-sphere::sphere(vec3 center, float r)
-    :center(center), radius(r)
+sphere::sphere(vec3 center, float r, vec3 albedo)
+    :center(center), radius(r), albedo(albedo)
 {
 }
 
@@ -25,6 +25,7 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
         //the tangential case is obvioslu pretty rare, but in tht case the discrimnant is zeo
         float temp = (-h - sqrt(discriminant)) / a;
         if (temp < t_max && temp > t_min) {
+            record.albedo = albedo;
             record.t = temp;
             record.p = r.get_point_at_t(record.t);
             record.normal = (record.p - center) / radius;
@@ -37,6 +38,7 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
         temp = (-h + sqrt(discriminant)) / a;
 
         if (temp < t_max && temp > t_min) {
+            record.albedo = albedo;
             record.t = temp;
             record.p = r.get_point_at_t(record.t);
             record.normal = (record.p - center) / radius;
