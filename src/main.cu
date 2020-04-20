@@ -51,22 +51,38 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
 
+
+#define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
+
+__device__ vec3 random_in_unit_sphere(curandState* local_rand_state) {
+	vec3 p;
+	do {
+		p = 2.0f * RANDVEC3 - vec3(1, 1, 1);
+	} while ((length(p))*(length(p)) >= 1.0f);
+	return p;
+
+}
+
 __global__ void make_scene(sphere** spheres, scene** dev_ptr, int count) {
 	*dev_ptr = new scene(spheres, count);
 }
 
-__device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* rand_state) {
+__device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* local_rand_state, int depth) {
+	
+	if (depth <= 0)
+		return vec3(0.f, 0.f, 0.f);
 	sphere_hit_details rec;
 	bool hit = (*sc)->hit_full(r, rec);
+	ray cur_ray = r;
+	float cur_attenuation = 1.0f;
 
 	if (hit)
 	{
-		curandState local_rand_state = rand_state[0];
-		/*vec3 v = glm::linearRand(vec3(-1.f, -1.f, -1.f), vec3(1.f, 1.f, 1.f));
-		v = normalize(v);*/
+		
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
-		vec3 target = rec.p + rec.normal;
-		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
+		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
+		return 0.5f * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
 	}
 
 	else
@@ -92,8 +108,6 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
 	curandState local_rand_state = rand_state[(int)pixel_index/100];
-	/*auto u = float(i) / max_x;
-	auto v = float(j) / max_y;*/
 	camera c;
 	vec3 col(0, 0, 0);
 	float sample_count = 1.f;
@@ -101,7 +115,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
-		col += pix_data3(r1, sky, i, j, sc, &local_rand_state);
+		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 2);
 	}
 	col = col / sample_count;
 	 //col = pix_data3(r1, sky, i, j, sc);
@@ -121,9 +135,10 @@ __global__ void render_init( curandState* rand_state) {
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
-	*(sph) = new  sphere(vec3(0.f, 0.000005, -1.f), 0.5);
-	*(sph + 1) = new sphere(vec3(1.5f, 0.00005f, -40000.5f), 0.5f);
-	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f);
+
+	*(sph) = new  sphere(vec3(-1.5f, 1.00005f, -4.5f), 0.5f);
+	*(sph + 1) = new sphere(vec3(1.5f, 1.00005f, -4.5f), 0.5f);
+	*(sph + 2) = new sphere(vec3(0.f, 1.5f, -4.5f), 0.5f);
 }
 
 int main()
@@ -188,7 +203,7 @@ int main()
 
 	curandState* d_rand_state;
 	gpuCheckErrs(cudaMalloc((void**)&d_rand_state,  sizeof(curandState)));
-	render_init << <192, 108 >> > (d_rand_state);
+	render_init << <512, 108 >> > (d_rand_state);
 
 
 	//setting up the sky
