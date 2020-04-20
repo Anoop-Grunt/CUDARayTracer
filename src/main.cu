@@ -24,7 +24,7 @@
 #include <float.h>
 #include "ray_tracing_camera.cuh"
 #include <curand_kernel.h>
-
+#include <glm/gtc/random.hpp>
 
 
 using namespace glm;
@@ -55,13 +55,17 @@ __global__ void make_scene(sphere** spheres, scene** dev_ptr, int count) {
 	*dev_ptr = new scene(spheres, count);
 }
 
-__device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc) {
+__device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* rand_state) {
 	sphere_hit_details rec;
 	bool hit = (*sc)->hit_full(r, rec);
 
 	if (hit)
 	{
+		curandState local_rand_state = rand_state[0];
+		/*vec3 v = glm::linearRand(vec3(-1.f, -1.f, -1.f), vec3(1.f, 1.f, 1.f));
+		v = normalize(v);*/
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
+		vec3 target = rec.p + rec.normal;
 		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
 	}
 
@@ -87,17 +91,17 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
-	curandState local_rand_state = rand_state[0];
+	curandState local_rand_state = rand_state[(int)pixel_index/100];
 	/*auto u = float(i) / max_x;
 	auto v = float(j) / max_y;*/
 	camera c;
 	vec3 col(0, 0, 0);
-	float sample_count = 2.f;
+	float sample_count = 1.f;
 	for (int s = 0; s < sample_count; s++) {
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
-		col += pix_data3(r1, sky, i, j, sc);
+		col += pix_data3(r1, sky, i, j, sc, &local_rand_state);
 	}
 	col = col / sample_count;
 	 //col = pix_data3(r1, sky, i, j, sc);
@@ -111,15 +115,15 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 }
 
 __global__ void render_init( curandState* rand_state) {
-
-	curand_init(1984, 1456, 0, &rand_state[0]);
+	int index = blockDim.x + threadIdx.x;
+	curand_init(1984, 1456, 0, &rand_state[index]);
 
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
-	*(sph) = new  sphere(vec3(-1.5f, 0.00005f, -4.5f), 0.5f);
-	*(sph + 1) = new sphere(vec3(1.5f, 0.00005f, -4.5f), 0.5f);
-	*(sph + 2) = new sphere(vec3(0.f, 0.5f, -4.5f), 0.5f);
+	*(sph) = new  sphere(vec3(0.f, 0.000005, -1.f), 0.5);
+	*(sph + 1) = new sphere(vec3(1.5f, 0.00005f, -40000.5f), 0.5f);
+	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f);
 }
 
 int main()
@@ -184,7 +188,7 @@ int main()
 
 	curandState* d_rand_state;
 	gpuCheckErrs(cudaMalloc((void**)&d_rand_state,  sizeof(curandState)));
-	render_init << <1, 1 >> > (d_rand_state);
+	render_init << <192, 108 >> > (d_rand_state);
 
 
 	//setting up the sky
