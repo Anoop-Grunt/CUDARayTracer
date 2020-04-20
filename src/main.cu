@@ -80,8 +80,8 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
 		vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
-		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
-		return 0.2f * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
+		return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);
+		//return 0.2f * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
 	}
 
 	else
@@ -120,7 +120,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 	}
 	col = col / sample_count;
-	 //col = pix_data3(r1, sky, i, j, sc);
+	
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -138,9 +138,9 @@ __global__ void render_init( curandState* rand_state) {
 
 __global__ void add_spheres(sphere** sph, int count) {
 
-	*(sph) = new  sphere(vec3(-1.5f, 1.00005f, -4.5f), .75f);
-	*(sph + 1) = new sphere(vec3(1.5f, 1.00005f, -4.5f), .75f);
-	*(sph + 2) = new sphere(vec3(0.f, 1.5f, -4.5f), .75f);
+	*(sph) = new  sphere(vec3(-1.5f, .00005f, -4.5f), .75f);
+	*(sph + 1) = new sphere(vec3(1.5f, .00005f, -4.5f), .75f);
+	*(sph + 2) = new sphere(vec3(0.f, 1.25f, -4.5f), .75f);
 }
 
 int main()
