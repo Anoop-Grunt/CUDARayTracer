@@ -115,7 +115,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
-		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 2);
+		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 17);
 	}
 	col = col / sample_count;
 	 //col = pix_data3(r1, sky, i, j, sc);
