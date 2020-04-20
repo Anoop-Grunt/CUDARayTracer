@@ -73,8 +73,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		return vec3(0.f, 0.f, 0.f);
 	sphere_hit_details rec;
 	bool hit = (*sc)->hit_full(r, rec);
-	ray cur_ray = r;
-	float cur_attenuation = 1.0f;
+	
 
 	if (hit)
 	{
@@ -82,7 +81,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
 		vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
 		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
-		return 0.5f * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
+		return 0.2f * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
 	}
 
 	else
@@ -99,6 +98,9 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		sky_col.y = gc;
 		sky_col.z = bc;
 		return sky_col;
+		/*vec3 unit_direction = glm::normalize(r.get_direction());
+		float t = 0.5 * (unit_direction.y + 1.0);
+		return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);*/
 	}
 }
 
@@ -110,12 +112,12 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	curandState local_rand_state = rand_state[(int)pixel_index/100];
 	camera c;
 	vec3 col(0, 0, 0);
-	float sample_count = 1.f;
+	float sample_count = 100.f;
 	for (int s = 0; s < sample_count; s++) {
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
-		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 17);
+		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 	}
 	col = col / sample_count;
 	 //col = pix_data3(r1, sky, i, j, sc);
@@ -136,9 +138,9 @@ __global__ void render_init( curandState* rand_state) {
 
 __global__ void add_spheres(sphere** sph, int count) {
 
-	*(sph) = new  sphere(vec3(-1.5f, 1.00005f, -4.5f), 0.5f);
-	*(sph + 1) = new sphere(vec3(1.5f, 1.00005f, -4.5f), 0.5f);
-	*(sph + 2) = new sphere(vec3(0.f, 1.5f, -4.5f), 0.5f);
+	*(sph) = new  sphere(vec3(-1.5f, 1.00005f, -4.5f), .75f);
+	*(sph + 1) = new sphere(vec3(1.5f, 1.00005f, -4.5f), .75f);
+	*(sph + 2) = new sphere(vec3(0.f, 1.5f, -4.5f), .75f);
 }
 
 int main()
