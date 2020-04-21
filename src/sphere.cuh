@@ -1,6 +1,9 @@
 #pragma once
 #include "ray.cuh"
 using namespace glm;
+
+enum mat_type {REFLECTIVE, REFRACTIVE, DIFFUSE };
+
 struct sphere_hit_details
 
 {
@@ -13,7 +16,7 @@ struct sphere_hit_details
         normal = front_face ? point_out : -point_out;
     }
     vec3 albedo;
-  
+    mat_type type;
 };
 
 
@@ -21,7 +24,7 @@ struct sphere_hit_details
 class sphere
 {
 public:
-    __device__ sphere(vec3 center, float r, vec3 albedo);
+    __device__ sphere(vec3 center, float r, vec3 albedo, mat_type m, float ref_index);
     __device__ ~sphere();
     __device__ bool hit(ray r, float tmin, float tmax, sphere_hit_details& rec);
 
@@ -32,7 +35,8 @@ private:
     vec3 center;
     float radius;
     vec3 albedo;
-
+    mat_type type;
+    float ri;
 };
 
 

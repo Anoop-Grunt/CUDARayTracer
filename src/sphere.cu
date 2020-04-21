@@ -1,8 +1,8 @@
 #include "sphere.cuh"
 
 
-sphere::sphere(vec3 center, float r, vec3 albedo)
-    :center(center), radius(r), albedo(albedo)
+sphere::sphere(vec3 center, float r, vec3 albedo, mat_type m, float ref_index)
+    :center(center), radius(r), albedo(albedo), type(m), ri(ref_index)
 {
 }
 
@@ -31,6 +31,16 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
             record.normal = (record.p - center) / radius;
             vec3 outward_normal = (record.p - center) / radius;
             record.orient_normal(r, outward_normal);
+            if (type == REFLECTIVE) {
+                record.type = REFLECTIVE;
+            }
+            if (type == REFRACTIVE) {
+                record.type = REFRACTIVE;
+            }
+            if (type == DIFFUSE) {
+                record.type = DIFFUSE;
+            }
+            
             return true;
 
         }
@@ -44,6 +54,16 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
             record.normal = (record.p - center) / radius;
             vec3 outward_normal = (record.p - center) / radius;
             record.orient_normal(r, outward_normal);
+            if (type == REFLECTIVE) {
+                record.type = REFLECTIVE;
+            }
+            if (type == REFRACTIVE) {
+                record.type = REFRACTIVE;
+            }
+            if (type == DIFFUSE) {
+                record.type = DIFFUSE;
+            }
+
             return true;
         }
 
