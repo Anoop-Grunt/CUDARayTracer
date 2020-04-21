@@ -2,6 +2,7 @@
 #include "device_launch_parameters.h"
 #include<GL/glew.h>
 #include<iostream>
+#include <stdio.h>
 #include <GLFW/glfw3.h>
 #include "Shader.h"
 #include "VertexBuffer.h"
@@ -25,7 +26,6 @@
 #include "ray_tracing_camera.cuh"
 #include <curand_kernel.h>
 #include <glm/gtc/random.hpp>
-
 
 using namespace glm;
 
@@ -51,49 +51,60 @@ void ScrollControlWrapper(GLFWwindow* window, double x_disp, double y_disp) {
 	primary_cam.scroll_handler(window, x_disp, y_disp);
 }
 
-
 #define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
 
 __device__ vec3 random_in_unit_sphere(curandState* local_rand_state) {
 	vec3 p;
 	do {
 		p = 2.0f * RANDVEC3 - vec3(1, 1, 1);
-	} while ((length(p))*(length(p)) >= 1.0f);
+	} while ((length(p)) * (length(p)) >= 1.0f);
 	return p;
-
 }
 
 __global__ void make_scene(sphere** spheres, scene** dev_ptr, int count) {
 	*dev_ptr = new scene(spheres, count);
 }
 
-__device__ vec3 reflect(vec3 v,  vec3 n) {
+__device__ vec3 reflect(vec3 v, vec3 n) {
 	return v - 2 * dot(v, n) * n;
 }
 
+__device__ vec3 refract( vec3 uv,  vec3 n, float etai_over_etat) {
+	auto cos_theta = dot(-uv, n);
+	vec3 r_out_parallel = etai_over_etat * (uv + cos_theta * n);
+	vec3 r_out_perp = -sqrt(1.0f - (length(r_out_parallel))*(r_out_parallel)) * n;
+	return r_out_parallel + r_out_perp;
+}
+__device__ vec3 ofset(ray r, vec3 origin) {
+	return origin;
+}
 __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* local_rand_state, int depth) {
-	
 	if (depth <= 0)
 		return vec3(0.f, 0.f, 0.f);
 	sphere_hit_details rec;
 	bool hit = (*sc)->hit_full(r, rec);
-	
 
 	if (hit)
 	{
-		
 		vec3 N = vec3(rec.normal.x, rec.normal.y, rec.normal.z);
 		vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
 		vec3 bounce_ray_dir;
+		vec3 bounce_ray_origin;
 		if (rec.type == REFLECTIVE) {
 			vec3 reflected_ray_dir = glm::normalize(reflect(r.get_direction(), N));
 			bounce_ray_dir = reflected_ray_dir;
+			bounce_ray_origin = rec.p;
 		}
-		
-		ray scattered = ray(rec.p, bounce_ray_dir);
+		if (rec.type == REFRACTIVE) {
+			vec3 refracted_ray_dir = glm::normalize(refract(normalize(r.get_direction()), N, rec.ref_ind));
+			bounce_ray_dir = refracted_ray_dir;
+			bounce_ray_origin = rec.p;
+		}
+
+		ray scattered = ray(bounce_ray_origin, bounce_ray_dir);
 		vec3 albedo = rec.albedo;
 		if (dot(scattered.get_direction(), rec.normal) > 0) {
-			return albedo * pix_data3(scattered , sky, su, sv, sc, local_rand_state, depth - 1);
+			return albedo * pix_data3(scattered, sky, su, sv, sc, local_rand_state, depth - 1);
 		}
 		return vec3(0.f, 0.f, 0.f);
 		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
@@ -117,7 +128,6 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		vec3 unit_direction = glm::normalize(r.get_direction());
 		float t = 0.5f * (unit_direction.y + 1.0f);
 		return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.9, 0.7, 1.0);
-	
 	}
 }
 
@@ -126,7 +136,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if ((i >= max_x) || (j >= max_y)) return;
 	int pixel_index = j * max_x * 4 + i * 4;
-	curandState local_rand_state = rand_state[(int)pixel_index/100];
+	curandState local_rand_state = rand_state[(int)pixel_index / 100];
 	camera c;
 	vec3 col(0, 0, 0);
 	float sample_count = 100.f;
@@ -137,7 +147,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 	}
 	col = col / sample_count;
-	
+
 	unsigned char r = (int)(255 * col.x);
 	unsigned char g = (int)(255 * col.y);
 	unsigned char b = (int)(255 * col.z);
@@ -148,21 +158,17 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 	pix_buff_loc[pixel_index + 3] = 255;
 }
 
-__global__ void render_init( curandState* rand_state) {
+__global__ void render_init(curandState* rand_state) {
 	int index = blockDim.x + threadIdx.x;
 	curand_init(1984, index, 0, &rand_state[index]);
-
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
-
-	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(0.8, 0.8, 0.8), REFLECTIVE, 0.f);
+	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(1.f, 1.f, 1.f), REFRACTIVE, 1.7f);
 	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.9f, 0.1f, 0.98f), REFLECTIVE, 0.f);
-	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f,  vec3(0.15f, 0.996f, 0.15f), REFLECTIVE, 0.f);
+	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f, vec3(0.15f, 0.996f, 0.15f), REFLECTIVE, 0.f);
 	*(sph + 3) = new sphere(vec3(1.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.2f, 0.2f), REFLECTIVE, 0.f);
 	*(sph + 4) = new sphere(vec3(-1.5f, .00005f, -2.5f), .5f, vec3(0.2f, 0.2f, 0.992f), REFLECTIVE, 0.f);
-
-
 }
 
 int main()
@@ -172,7 +178,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -224,11 +230,9 @@ int main()
 	dim3 blocks(width / tx + 1, height / ty + 1);
 	dim3 threads(tx, ty);
 
-
 	curandState* d_rand_state;
-	gpuCheckErrs(cudaMalloc((void**)&d_rand_state,  sizeof(curandState)));
+	gpuCheckErrs(cudaMalloc((void**)&d_rand_state, sizeof(curandState)));
 	render_init << <512, 108 >> > (d_rand_state);
-
 
 	//setting up the sky
 

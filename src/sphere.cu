@@ -36,9 +36,19 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
             }
             if (type == REFRACTIVE) {
                 record.type = REFRACTIVE;
+                if (record.front_face) {
+                    record.ref_ind = 1 / ri;
+                    
+                }
+                else
+                {
+                    record.ref_ind = ri;
+                }
+
             }
             if (type == DIFFUSE) {
                 record.type = DIFFUSE;
+                
             }
             
             return true;
@@ -59,6 +69,14 @@ __device__ bool sphere::hit(ray r, float t_min, float t_max, sphere_hit_details&
             }
             if (type == REFRACTIVE) {
                 record.type = REFRACTIVE;
+                if (record.front_face) {
+                    record.ref_ind = 1 / ri;
+
+                }
+                else
+                {
+                    record.ref_ind = ri;
+                }
             }
             if (type == DIFFUSE) {
                 record.type = DIFFUSE;

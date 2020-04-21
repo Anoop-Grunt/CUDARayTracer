@@ -4,6 +4,7 @@ using namespace glm;
 
 enum mat_type {REFLECTIVE, REFRACTIVE, DIFFUSE };
 
+
 struct sphere_hit_details
 
 {
@@ -17,6 +18,8 @@ struct sphere_hit_details
     }
     vec3 albedo;
     mat_type type;
+    float ref_ind;
+    
 };
 
 
