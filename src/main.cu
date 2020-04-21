@@ -175,7 +175,7 @@ __global__ void render_init(curandState* rand_state) {
 
 __global__ void add_spheres(sphere** sph, int count) {
 	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(.8f, .8f, .8f), REFLECTIVE, 1.7f);
-	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.9f, 0.1f, 0.98f), REFLECTIVE, 0.f);
+	*(sph + 1) = new sphere(vec3(.5f, .00005f, -1.5f), .35f, vec3(0.9f, 0.1f, 0.98f), REFLECTIVE, 0.f);
 	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f, vec3(0.15f, 0.996f, 0.15f), DIFFUSE, 0.f);
 	*(sph + 3) = new sphere(vec3(1.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.2f, 0.2f), REFLECTIVE, 0.f);
 	*(sph + 4) = new sphere(vec3(-1.5f, .00005f, -2.5f), .5f, vec3(0.2f, 0.2f, 0.992f), REFLECTIVE, 0.f);
