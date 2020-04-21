@@ -69,10 +69,10 @@ __device__ vec3 reflect(vec3 v, vec3 n) {
 	return v - 2 * dot(v, n) * n;
 }
 
-__device__ vec3 refract( vec3 uv,  vec3 n, float etai_over_etat) {
+__device__ vec3 refract(vec3 uv, vec3 n, float etai_over_etat) {
 	auto cos_theta = dot(-uv, n);
 	vec3 r_out_parallel = etai_over_etat * (uv + cos_theta * n);
-	vec3 r_out_perp = -sqrt(1.0f - (length(r_out_parallel))*(r_out_parallel)) * n;
+	vec3 r_out_perp = -sqrt(1.0f - (length(r_out_parallel)) * (r_out_parallel)) * n;
 	return r_out_parallel + r_out_perp;
 }
 __device__ vec3 ofset(ray r, vec3 origin) {
@@ -110,10 +110,9 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		vec3 albedo = rec.albedo;
 		/*if (dot(scattered.get_direction(), rec.normal) > 0) {
 			return albedo * pix_data3(scattered, sky, su, sv, sc, local_rand_state, depth - 1);
-
 		}*/
 		return albedo * pix_data3(scattered, sky, su, sv, sc, local_rand_state, depth - 1);
-		
+
 		return vec3(0.f, 0.f, 0.f);
 		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
 		//return vec3(0.f, 0.f, 0.5f) * pix_data3(ray(rec.p, target - rec.p), sky, su, sv, sc, local_rand_state, depth -1);
@@ -139,9 +138,6 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 	}
 }
 
-
-
-
 __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsigned char* sky, scene** sc, curandState* rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -155,7 +151,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
-		
+
 		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 	}
 	col = col / sample_count;
