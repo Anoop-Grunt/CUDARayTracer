@@ -95,9 +95,14 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 			bounce_ray_dir = reflected_ray_dir;
 			bounce_ray_origin = rec.p;
 		}
-		if (rec.type == REFRACTIVE) {
+	/*	if (rec.type == REFRACTIVE) {
 			vec3 refracted_ray_dir = glm::normalize(refract(normalize(r.get_direction()), N, rec.ref_ind));
 			bounce_ray_dir = refracted_ray_dir;
+			bounce_ray_origin = rec.p;
+		}*/
+		if (rec.type == DIFFUSE) {
+			vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
+			bounce_ray_dir = target - rec.p;
 			bounce_ray_origin = rec.p;
 		}
 
@@ -105,6 +110,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		vec3 albedo = rec.albedo;
 		if (dot(scattered.get_direction(), rec.normal) > 0) {
 			return albedo * pix_data3(scattered, sky, su, sv, sc, local_rand_state, depth - 1);
+
 		}
 		return vec3(0.f, 0.f, 0.f);
 		/*return 0.5f * vec3(N.x + 1, N.y + 1, N.z + 1);*/
@@ -131,6 +137,33 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 	}
 }
 
+//
+//
+//__device__ vec3 pix_data4(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* local_rand_state, int depth) {
+//	ray cur_ray = r;
+//	sphere_hit_details rec1;
+//	bool hit = (*sc)->hit_full(r, rec1);
+//	vec3 cur_attenuation = vec3(1.f, 1.f, 1.f);
+//	for (int i = 0; i < 10; i++) {
+//		sphere_hit_details rec;
+//		if ((*sc)->hit_full(cur_ray, rec)) {
+//			vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
+//			cur_attenuation *= rec.albedo;
+//			cur_ray = ray(rec.p, target - rec.p);
+//		}
+//		else {
+//			vec3 unit_direction = normalize(cur_ray.get_direction());
+//			float t = 0.5f * (unit_direction.y + 1.0f);
+//			vec3 c = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+//			return cur_attenuation * c;
+//		}
+//	}
+//	return vec3(0.0, 0.0, 0.0);
+//}
+
+
+
+
 __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsigned char* sky, scene** sc, curandState* rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -144,6 +177,7 @@ __global__ void render(unsigned char* pix_buff_loc, int max_x, int max_y, unsign
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
 		ray r1 = c.get_ray(u, v);
+		//col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 		col += pix_data3(r1, sky, i, j, sc, &local_rand_state, 10);
 	}
 	col = col / sample_count;
@@ -164,9 +198,9 @@ __global__ void render_init(curandState* rand_state) {
 }
 
 __global__ void add_spheres(sphere** sph, int count) {
-	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(1.f, 1.f, 1.f), REFRACTIVE, 1.7f);
+	*(sph) = new  sphere(vec3(-.5f, .00005f, -2.5f), .5f, vec3(.8f, .8f, .8f), REFLECTIVE, 1.7f);
 	*(sph + 1) = new sphere(vec3(.5f, .00005f, -2.5f), .5f, vec3(0.9f, 0.1f, 0.98f), REFLECTIVE, 0.f);
-	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f, vec3(0.15f, 0.996f, 0.15f), REFLECTIVE, 0.f);
+	*(sph + 2) = new sphere(vec3(0.f, -100.5f, -1.f), 100.f, vec3(0.15f, 0.996f, 0.15f), DIFFUSE, 0.f);
 	*(sph + 3) = new sphere(vec3(1.5f, .00005f, -2.5f), .5f, vec3(0.98f, 0.2f, 0.2f), REFLECTIVE, 0.f);
 	*(sph + 4) = new sphere(vec3(-1.5f, .00005f, -2.5f), .5f, vec3(0.2f, 0.2f, 0.992f), REFLECTIVE, 0.f);
 }
