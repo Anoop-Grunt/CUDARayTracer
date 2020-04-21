@@ -95,7 +95,7 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 			bounce_ray_dir = reflected_ray_dir;
 			bounce_ray_origin = rec.p;
 		}
-	/*	if (rec.type == REFRACTIVE) {
+		/*if (rec.type == REFRACTIVE) {
 			vec3 refracted_ray_dir = glm::normalize(refract(normalize(r.get_direction()), N, rec.ref_ind));
 			bounce_ray_dir = refracted_ray_dir;
 			bounce_ray_origin = rec.p;
@@ -136,30 +136,6 @@ __device__ vec3 pix_data3(ray r, unsigned char* sky, int su, int sv, scene** sc,
 		return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.9, 0.7, 1.0);
 	}
 }
-
-//
-//
-//__device__ vec3 pix_data4(ray r, unsigned char* sky, int su, int sv, scene** sc, curandState* local_rand_state, int depth) {
-//	ray cur_ray = r;
-//	sphere_hit_details rec1;
-//	bool hit = (*sc)->hit_full(r, rec1);
-//	vec3 cur_attenuation = vec3(1.f, 1.f, 1.f);
-//	for (int i = 0; i < 10; i++) {
-//		sphere_hit_details rec;
-//		if ((*sc)->hit_full(cur_ray, rec)) {
-//			vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
-//			cur_attenuation *= rec.albedo;
-//			cur_ray = ray(rec.p, target - rec.p);
-//		}
-//		else {
-//			vec3 unit_direction = normalize(cur_ray.get_direction());
-//			float t = 0.5f * (unit_direction.y + 1.0f);
-//			vec3 c = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
-//			return cur_attenuation * c;
-//		}
-//	}
-//	return vec3(0.0, 0.0, 0.0);
-//}
 
 
 
@@ -212,7 +188,7 @@ int main()
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-	window = glfwCreateWindow(1920, 1080, "CUDA project", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "CUDA project", glfwGetPrimaryMonitor(), NULL);
 	if (!window)
 	{
 		glfwTerminate();
